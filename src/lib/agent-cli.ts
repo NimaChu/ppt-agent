@@ -49,6 +49,20 @@ const AGENTS: AgentDefinition[] = [
     detectCommands: ["cursor-agent", "cursor"],
     args: (prompt) => ["--print", prompt],
   },
+  {
+    id: "trae",
+    label: "Trae Agent",
+    command: "trae-cli",
+    detectCommands: ["trae-cli"],
+    args: (prompt) => ["run", prompt],
+  },
+  {
+    id: "opencode",
+    label: "OpenCode",
+    command: "opencode",
+    detectCommands: ["opencode"],
+    args: (prompt) => ["run", "--format", "json", "--dangerously-skip-permissions", prompt],
+  },
 ];
 
 export function detectAgentClis(): AgentCliStatus[] {
@@ -78,7 +92,7 @@ export function selectAgentCli() {
 export function spawnAgentCli(prompt: string, cwd: string): ChildProcessByStdio<null, Readable, Readable> {
   const selected = selectAgentCli();
   if (!selected) {
-    throw new Error("No supported coding-agent CLI found. Install or log in to Claude Code, Codex, Gemini, or Cursor Agent.");
+    throw new Error("No supported coding-agent CLI found. Install or log in to Claude Code, Codex, Gemini, Cursor Agent, Trae Agent, or OpenCode.");
   }
   return spawn(selected.path ?? selected.command, selected.definition.args(prompt), {
     cwd,

@@ -23,6 +23,8 @@ COMMANDS = [
     "gemini",
     "cursor-agent",
     "cursor",
+    "trae-cli",
+    "opencode",
 ]
 
 

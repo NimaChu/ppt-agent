@@ -1,6 +1,6 @@
 # ppt agent
 
-Local LAN web app for generating editable PowerPoint decks through a logged-in coding-agent CLI such as Claude Code, Cursor Agent, Codex CLI, or Gemini CLI.
+Local LAN web app for generating editable PowerPoint decks through a logged-in coding-agent CLI such as Claude Code, Cursor Agent, Codex CLI, Gemini CLI, Trae Agent, or OpenCode.
 
 ## What Is Bundled
 
@@ -15,7 +15,7 @@ Local LAN web app for generating editable PowerPoint decks through a logged-in c
 Prerequisites:
 
 - Node.js 22 LTS or newer
-- At least one supported agent CLI installed and logged in: Claude Code, Cursor, Codex CLI, or Gemini CLI
+- At least one supported agent CLI installed and logged in: Claude Code, Cursor, Codex CLI, Gemini CLI, Trae Agent, or OpenCode
 - Python 3 is recommended for PPTX validation and template import helpers
 
 Clone and start:

@@ -10,7 +10,7 @@ export type JobStatus =
 
 export type Preset = "quick" | "standard" | "polished";
 
-export type AgentCliId = "claude" | "codex" | "gemini" | "cursor";
+export type AgentCliId = "claude" | "codex" | "gemini" | "cursor" | "trae" | "opencode";
 
 export type AgentCliStatus = {
   id: AgentCliId;

@@ -8,6 +8,8 @@ The target computer still needs one logged-in agent CLI:
 - Cursor Agent
 - Codex CLI
 - Gemini CLI
+- Trae Agent
+- OpenCode
 
 After installation, open **ppt agent** from the Start Menu or desktop shortcut. The launcher starts the local service and opens:
 

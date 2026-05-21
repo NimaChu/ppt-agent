@@ -251,7 +251,7 @@ async function startAgentJob(jobId: string) {
   await updateJob(jobId, { status: "running" }, "running");
   const agent = selectAgentCli();
   if (!agent) {
-    await failJob(jobId, "No supported coding-agent CLI found. Install or log in to Claude Code, Codex, Gemini, or Cursor Agent.");
+    await failJob(jobId, "No supported coding-agent CLI found. Install or log in to Claude Code, Codex, Gemini, Cursor Agent, Trae Agent, or OpenCode.");
     return;
   }
   await appendEvent(jobId, {
@@ -579,6 +579,9 @@ function summarizeLog(stream: "stdout" | "stderr" | "system", message: string) {
     if (/Starting Claude Code/i.test(message)) return "Generation engine started: Claude Code.";
     if (/Starting Codex CLI/i.test(message)) return "Generation engine started: Codex CLI.";
     if (/Starting Gemini CLI/i.test(message)) return "Generation engine started: Gemini CLI.";
+    if (/Starting Cursor Agent/i.test(message)) return "Generation engine started: Cursor Agent.";
+    if (/Starting Trae Agent/i.test(message)) return "Generation engine started: Trae Agent.";
+    if (/Starting OpenCode/i.test(message)) return "Generation engine started: OpenCode.";
     if (/Normalized slide_plan/i.test(message)) return "Slide plan metadata was normalized before validation.";
     return sanitizeMessage(message);
   }
@@ -614,6 +617,14 @@ function summarizeAgentJsonLine(line: string) {
     }
     const text = content.find((item) => item.type === "text");
     if (typeof text?.text === "string") return summarizeAssistantText(text.text);
+  }
+  if (parsed.type === "tool" || parsed.type === "tool_start" || parsed.type === "tool_call") {
+    const name = parsed.name ?? parsed.tool ?? parsed.title;
+    if (name) return `Tool: ${sanitizeMessage(String(name))}`;
+  }
+  if (parsed.type === "message" || parsed.type === "text") {
+    const text = parsed.message ?? parsed.text ?? parsed.content;
+    if (typeof text === "string") return summarizeAssistantText(text);
   }
   if (parsed.type === "user") {
     const result = (parsed as { tool_use_result?: unknown }).tool_use_result;
