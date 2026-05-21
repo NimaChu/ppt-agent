@@ -1,0 +1,36 @@
+{
+  "id": "dark-tech-agent",
+  "kind": "deck-derived",
+  "name": {
+    "zh": "深色科技 Agent",
+    "en": "Dark Tech Agent"
+  },
+  "purpose": {
+    "zh": "技术分享、AI 工具介绍、开发者培训。",
+    "en": "Technical talks, AI tool explainers, and developer training."
+  },
+  "style": {
+    "zh": "深色科技主题，暖金与蓝色强调，适合工程和安全语境。",
+    "en": "Dark technical theme with warm gold and blue accents for engineering and safety contexts."
+  },
+  "tags": {
+    "zh": [
+      "技术",
+      "AI",
+      "深色",
+      "开发者"
+    ],
+    "en": [
+      "tech",
+      "AI",
+      "dark",
+      "developer"
+    ]
+  },
+  "aspectRatio": "16:9",
+  "sourceExample": "built-in-template:dark-tech-agent",
+  "designSpecPath": "references/design_spec.md",
+  "specLockPath": "references/spec_lock.md",
+  "sampleSvgDir": "references/sample_svgs",
+  "templateStrength": "Reusable style distilled from a finished PowerPoint deck."
+}

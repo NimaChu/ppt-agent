@@ -1,0 +1,36 @@
+{
+  "id": "anthropic-agent-consulting",
+  "kind": "deck-derived",
+  "name": {
+    "zh": "Anthropic Agent 咨询风",
+    "en": "Anthropic Agent Consulting"
+  },
+  "purpose": {
+    "zh": "AI/LLM 架构培训、技术咨询风演示。",
+    "en": "AI/LLM architecture training and consulting-style technical decks."
+  },
+  "style": {
+    "zh": "顶级咨询结构，Anthropic 橙、深空灰和流程图表达。",
+    "en": "Top-tier consulting structure with Anthropic orange, deep slate, and process diagrams."
+  },
+  "tags": {
+    "zh": [
+      "AI代理",
+      "咨询",
+      "架构",
+      "培训"
+    ],
+    "en": [
+      "agents",
+      "consulting",
+      "architecture",
+      "training"
+    ]
+  },
+  "aspectRatio": "16:9",
+  "sourceExample": "built-in-template:anthropic-agent-consulting",
+  "designSpecPath": "references/design_spec.md",
+  "specLockPath": "references/spec_lock.md",
+  "sampleSvgDir": "references/sample_svgs",
+  "templateStrength": "Reusable style distilled from a finished PowerPoint deck."
+}

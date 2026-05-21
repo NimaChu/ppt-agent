@@ -1,0 +1,36 @@
+{
+  "id": "google-work-report",
+  "kind": "deck-derived",
+  "name": {
+    "zh": "Google 工作汇报",
+    "en": "Google Work Report"
+  },
+  "purpose": {
+    "zh": "年度总结、项目复盘、数据驱动工作汇报。",
+    "en": "Annual summaries, project reviews, and data-driven work reports."
+  },
+  "style": {
+    "zh": "Google 品牌色、清晰网格、KPI 卡片和简洁图表。",
+    "en": "Google brand colors, clean grids, KPI cards, and concise charts."
+  },
+  "tags": {
+    "zh": [
+      "工作汇报",
+      "年度总结",
+      "项目",
+      "数据"
+    ],
+    "en": [
+      "report",
+      "annual",
+      "project",
+      "data"
+    ]
+  },
+  "aspectRatio": "16:9",
+  "sourceExample": "built-in-template:google-work-report",
+  "designSpecPath": "references/design_spec.md",
+  "specLockPath": "references/spec_lock.md",
+  "sampleSvgDir": "references/sample_svgs",
+  "templateStrength": "Reusable style distilled from a finished PowerPoint deck."
+}

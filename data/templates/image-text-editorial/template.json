@@ -1,0 +1,36 @@
+{
+  "id": "image-text-editorial",
+  "kind": "deck-derived",
+  "name": {
+    "zh": "图文编辑风",
+    "en": "Image Text Editorial"
+  },
+  "purpose": {
+    "zh": "图文型展示、课程案例、视觉丰富型内容。",
+    "en": "Image-rich showcases, course examples, and editorial visual decks."
+  },
+  "style": {
+    "zh": "多样化图文排版，杂志感强，适合视觉表达和案例集。",
+    "en": "Editorial image-text layouts with varied magazine-like compositions."
+  },
+  "tags": {
+    "zh": [
+      "图文",
+      "编辑风",
+      "课程",
+      "视觉"
+    ],
+    "en": [
+      "image",
+      "editorial",
+      "course",
+      "visual"
+    ]
+  },
+  "aspectRatio": "16:9",
+  "sourceExample": "built-in-template:image-text-editorial",
+  "designSpecPath": "references/design_spec.md",
+  "specLockPath": "references/spec_lock.md",
+  "sampleSvgDir": "references/sample_svgs",
+  "templateStrength": "Reusable style distilled from a finished PowerPoint deck."
+}

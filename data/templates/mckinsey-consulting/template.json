@@ -1,0 +1,36 @@
+{
+  "id": "mckinsey-consulting",
+  "kind": "deck-derived",
+  "name": {
+    "zh": "麦肯锡咨询风",
+    "en": "McKinsey Consulting"
+  },
+  "purpose": {
+    "zh": "咨询汇报、客户分析、战略方案。",
+    "en": "Consulting reports, customer analysis, and strategy proposals."
+  },
+  "style": {
+    "zh": "高端咨询版式，麦肯锡蓝、结构化数据图表、留白克制。",
+    "en": "Premium consulting layout with McKinsey blue, structured data visuals, and restrained whitespace."
+  },
+  "tags": {
+    "zh": [
+      "咨询",
+      "战略",
+      "客户分析",
+      "数据"
+    ],
+    "en": [
+      "consulting",
+      "strategy",
+      "customer",
+      "data"
+    ]
+  },
+  "aspectRatio": "16:9",
+  "sourceExample": "built-in-template:mckinsey-consulting",
+  "designSpecPath": "references/design_spec.md",
+  "specLockPath": "references/spec_lock.md",
+  "sampleSvgDir": "references/sample_svgs",
+  "templateStrength": "Reusable style distilled from a finished PowerPoint deck."
+}

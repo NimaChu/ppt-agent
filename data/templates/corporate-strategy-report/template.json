@@ -1,0 +1,36 @@
+{
+  "id": "corporate-strategy-report",
+  "kind": "deck-derived",
+  "name": {
+    "zh": "企业战略报告",
+    "en": "Corporate Strategy Report"
+  },
+  "purpose": {
+    "zh": "企业战略、认证/行业研究、管理层汇报。",
+    "en": "Corporate strategy, certification or industry research, and executive reports."
+  },
+  "style": {
+    "zh": "高端咨询风，适合长期规划、产业分析和路线图表达。",
+    "en": "High-end consulting style for long-range plans, industry analysis, and roadmap narratives."
+  },
+  "tags": {
+    "zh": [
+      "企业",
+      "战略",
+      "行业研究",
+      "路线图"
+    ],
+    "en": [
+      "corporate",
+      "strategy",
+      "industry",
+      "roadmap"
+    ]
+  },
+  "aspectRatio": "16:9",
+  "sourceExample": "built-in-template:corporate-strategy-report",
+  "designSpecPath": "references/design_spec.md",
+  "specLockPath": "references/spec_lock.md",
+  "sampleSvgDir": "references/sample_svgs",
+  "templateStrength": "Reusable style distilled from a finished PowerPoint deck."
+}

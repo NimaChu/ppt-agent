@@ -1,0 +1,4 @@
+interface:
+  display_name: "PPT Agent Pipeline"
+  short_description: "Hybrid service pipeline for editable PPTX"
+  default_prompt: "Use $ppt-agent-pipeline to design, optimize, or run a service-ready AI workflow that generates editable PPTX decks from chat requirements."
