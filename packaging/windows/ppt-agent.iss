@@ -1,7 +1,7 @@
 #define MyAppName "ppt agent"
 #define MyAppVersion "0.1.0"
 #define MyAppPublisher "ppt agent"
-#define MyAppExeName "start-ppt-agent.cmd"
+#define MyAppExeName "ppt-agent-tray.ps1"
 
 [Setup]
 AppId={{8A2E78C5-68D6-4C91-A3C4-F0A02E315E86}
@@ -24,8 +24,8 @@ ArchitecturesInstallIn64BitMode=x64
 Source: "..\..\dist\windows\ppt-agent\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{autoprograms}\ppt agent"; Filename: "{app}\start-ppt-agent.cmd"; WorkingDir: "{app}"
-Name: "{autodesktop}\ppt agent"; Filename: "{app}\start-ppt-agent.cmd"; WorkingDir: "{app}"; Tasks: desktopicon
+Name: "{autoprograms}\ppt agent"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-STA -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\ppt-agent-tray.ps1"""; WorkingDir: "{app}"
+Name: "{autodesktop}\ppt agent"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-STA -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\ppt-agent-tray.ps1"""; WorkingDir: "{app}"; Tasks: desktopicon
 Name: "{autoprograms}\Stop ppt agent"; Filename: "{app}\stop-ppt-agent.cmd"; WorkingDir: "{app}"
 
 [Tasks]
@@ -34,7 +34,7 @@ Name: "firewall"; Description: "Allow LAN access on TCP port 3007"; GroupDescrip
 
 [Run]
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""ppt agent 3007"" dir=in action=allow protocol=TCP localport=3007"; Flags: runhidden; Tasks: firewall
-Filename: "{app}\start-ppt-agent.cmd"; Description: "Start ppt agent"; Flags: nowait postinstall skipifsilent
+Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-STA -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\ppt-agent-tray.ps1"""; Description: "Start ppt agent"; Flags: nowait postinstall skipifsilent
 
 [UninstallRun]
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""ppt agent 3007"""; Flags: runhidden

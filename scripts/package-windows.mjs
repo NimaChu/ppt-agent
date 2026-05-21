@@ -39,6 +39,7 @@ await copyFile(path.join(root, "scripts", "bootstrap-admin.mjs"), path.join(appD
 await copyFile(path.join(root, "package.json"), path.join(appDir, "package.json"));
 await copyFile(path.join(root, "packaging", "windows", "start-ppt-agent.cmd"), path.join(outRoot, "start-ppt-agent.cmd"));
 await copyFile(path.join(root, "packaging", "windows", "stop-ppt-agent.cmd"), path.join(outRoot, "stop-ppt-agent.cmd"));
+await copyFile(path.join(root, "packaging", "windows", "ppt-agent-tray.ps1"), path.join(outRoot, "ppt-agent-tray.ps1"));
 await fs.mkdir(path.join(outRoot, "runtime", "node"), { recursive: true });
 await fs.mkdir(path.join(outRoot, "runtime", "python"), { recursive: true });
 console.log(`Windows package staging directory ready: ${outRoot}`);
