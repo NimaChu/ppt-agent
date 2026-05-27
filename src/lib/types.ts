@@ -3,12 +3,15 @@ export type JobStatus =
   | "uploading"
   | "queued"
   | "running"
+  | "repairing"
+  | "reviewing"
   | "previewing"
   | "validating"
   | "complete"
-  | "failed";
+  | "failed"
+  | "cancelled";
 
-export type Preset = "quick" | "standard" | "polished";
+export type AgentRunMode = "generation" | "revision" | "repair";
 
 export type AgentCliId = "claude" | "codex" | "gemini" | "cursor" | "trae" | "opencode";
 
@@ -75,6 +78,8 @@ export type TemplateMeta = {
   designSpecPath?: string;
   specLockPath?: string;
   sampleSvgDir?: string;
+  brandSpecPath?: string;
+  brandAssetDir?: string;
   templateStrength?: string;
   previewPath: string;
   examplePath: string;
@@ -92,11 +97,20 @@ export type JobManifest = {
   createdAt: string;
   updatedAt: string;
   templateId: string;
-  preset: Preset;
+  templateDir?: string;
   agentId?: AgentCliId;
   agentCommand?: string;
   prompt: string;
   uploads: string[];
+  previewSlides: string[];
+  repairAttempts?: number;
+  lastValidationError?: string;
+  retainQaReport?: boolean;
+  runMode?: AgentRunMode;
+  queuedAt?: string;
+  queuePosition?: number;
+  startedAt?: string;
+  deadlineAt?: string;
   error?: string;
   artifacts: Record<string, string>;
 };

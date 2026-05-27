@@ -8,7 +8,7 @@ Use this reference when building the LAN/web backend around the PPT agent.
 - Agent orchestrator: maintains conversation state, chooses route, writes job artifacts.
 - Job runner: executes PPT generation in an isolated workspace.
 - Preview renderer: converts `.pptx` to PDF and slide images.
-- Artifact store: keeps source files, generated PPTX, previews, logs, and QA reports.
+- Artifact store: keeps source files, generated PPTX, previews and logs; keeps narrative QA reports only for administrator jobs.
 - Queue: required once more than one user can submit jobs at the same time.
 
 For a local network MVP, a single FastAPI/Express service plus a background worker is enough. Add Redis/RQ, BullMQ, Celery, or another queue when jobs become concurrent or long-running.
@@ -33,17 +33,17 @@ jobs/<job_id>/
   preview/
     contact-sheet.png
     slide-001.png
-  qa/qa_report.md
+  qa/qa_report.md       # optional, administrator jobs only
   logs/
     stages.jsonl
   output/final.pptx
 ```
 
-Persist `request.json`, `slide_plan.json`, and `qa_report.md` even on failure. They make retries and debugging possible.
+Persist `request.json`, `slide_plan.json`, validator failures and repair feedback on failure. Persist `qa_report.md` only for jobs with administrator-facing QA enabled.
 
 Recommended `request.json` keys:
 
-- `preset`: `quick`, `standard`, or `polished`.
+- `generation_mode`: currently `direct`, reserved only for future measured workflow variants.
 - `audience`, `purpose`, `page_count`, `language`.
 - `template_id` or copied template path.
 - `editable_charts_required`: boolean.
@@ -69,6 +69,8 @@ When running from the ppt-agent app root, the bundled validator path is:
 python3 src/server/pipeline/ppt-agent-pipeline/scripts/validate_job.py jobs/<job_id> --require-final
 ```
 
+Add `--require-qa` only for administrator jobs that retain `qa/qa_report.md`.
+
 ## API Shape
 
 Keep the service API boring:
@@ -76,7 +78,7 @@ Keep the service API boring:
 - `POST /jobs`: create a generation job from prompt, files, template id, and options.
 - `GET /jobs/:id`: return status, current stage, warnings, and artifact links.
 - `POST /jobs/:id/messages`: add user feedback or edit instructions.
-- `POST /jobs/:id/promote`: rerun a `quick` or `standard` job as `polished`.
+- `POST /jobs/:id/revise`: regenerate one requested slide from user feedback.
 - `GET /jobs/:id/download`: return the final `.pptx`.
 
 Generation can be async. Return a job id immediately, then stream or poll status.
@@ -99,7 +101,7 @@ For edits, preserve the same contract:
 - Patch only affected slide records in `slide_plan.json`.
 - Regenerate affected slides or affected OOXML parts.
 - Re-render previews for changed slides and refresh the contact sheet.
-- Append the change to `logs/stages.jsonl` and `qa/qa_report.md`.
+- Append the change to `logs/stages.jsonl`, and to `qa/qa_report.md` only when administrator-facing QA retention is enabled.
 
 ## Security Defaults
 

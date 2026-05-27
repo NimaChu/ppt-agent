@@ -28,6 +28,7 @@ export async function POST(request: Request) {
       name: String(formData.get("name") ?? ""),
       description: String(formData.get("description") ?? ""),
       tags: splitTags(String(formData.get("tags") ?? "")),
+      brandFiles: formData.getAll("brandFiles").filter((item): item is File => item instanceof File),
     });
     return NextResponse.json({ template: result });
   } catch (error) {

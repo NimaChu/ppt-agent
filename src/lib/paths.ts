@@ -9,3 +9,4 @@ export const AUTH_DIR = path.join(DATA_DIR, "auth");
 export const TEMPLATES_DIR = path.join(DATA_DIR, "templates");
 export const PPT_AGENT_SKILL_DIR = path.join(PROJECT_ROOT, "src", "server", "pipeline", "ppt-agent-pipeline");
 export const VALIDATE_JOB_SCRIPT = path.join(PPT_AGENT_SKILL_DIR, "scripts", "validate_job.py");
+export const PPTX_TO_SVG_SCRIPT = path.join(PROJECT_ROOT, "src", "server", "template-import", "pptx_to_svg.py");

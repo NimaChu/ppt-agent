@@ -6,6 +6,10 @@ import {
   CheckCircle2,
   Clipboard,
   Copy,
+  ChevronLeft,
+  ChevronRight,
+  Edit3,
+  Eye,
   FileText,
   History,
   Languages,
@@ -22,7 +26,7 @@ import {
 } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import type { RefObject } from "react";
-import type { AgentCliStatus, AppUser, JobManifest, JobStatus, Preset, TemplateMeta } from "@/lib/types";
+import type { AgentCliStatus, AppUser, JobManifest, JobStatus, TemplateMeta } from "@/lib/types";
 
 type Language = "zh" | "en";
 
@@ -38,9 +42,13 @@ type Health = {
   agents: AgentCliStatus[];
   validatorExists: boolean;
   templateCount: number;
+  queue?: {
+    maxConcurrentJobs: number;
+    activeJobs: number;
+  };
 };
 
-const busyStatuses: JobStatus[] = ["uploading", "queued", "running", "previewing", "validating"];
+const busyStatuses: JobStatus[] = ["uploading", "queued", "running", "repairing", "previewing", "validating"];
 
 const copy = {
   zh: {
@@ -49,12 +57,21 @@ const copy = {
     accountAdmin: "账号管理",
     changePassword: "修改密码",
     diagnostics: "诊断信息",
+    pagePreview: "逐页预览",
+    noPagePreview: "本次任务没有生成单页预览，可使用 Contact Sheet 查看整体节奏。",
+    reviseSlide: "修改这一页",
+    reviseTitle: "局部修改",
+    reviseHint: "输入页码和修改要求，只重做目标页面并更新 PPTX。",
+    slideNumber: "页码",
+    revisePlaceholder: "例如：第 3 页减少文字，突出结论数字，保持模板风格。",
+    sendRevision: "提交修改",
     logout: "退出",
     promptTitle: "想做什么 PPT？",
     promptIntro: "直接描述需求，上传材料，选择一个 PPT 生成模板。我会把工作拆成结构规划、PPT 生成、预览校验和下载交付几步展示给你。",
     placeholder: "告诉我你想生成什么 PPT，也可以上传资料...",
     defaultPrompt: "基于上传材料生成一份面向内部同事的培训 PPT，要求结构清晰、可编辑、包含练习页和总结页。",
-    upload: "上传文档",
+    upload: "上传材料",
+    removeFile: "移除文件",
     files: "个文件",
     generate: "生成 PPT",
     templateFallback: "默认模板",
@@ -67,6 +84,7 @@ const copy = {
     templatePptx: "含 PPT 模板",
     templateDerived: "成品沉淀",
     templateImported: "导入模板",
+    brandAssets: "含品牌素材",
     diagnosticsTitle: "诊断信息",
     diagnosticsHint: "用于排查任务状态，已隐藏文档内容和本地路径。",
     copyAll: "复制全部",
@@ -84,16 +102,22 @@ const copy = {
     passwordSaved: "密码已更新",
     passwordFailed: "密码修改失败",
     close: "关闭",
-    preset: { quick: "快速", standard: "标准", polished: "精修" },
+    queuedPosition: "当前排队位置",
+    cancelQueued: "取消排队",
+    stopRunning: "中断任务",
+    cancelling: "正在取消",
     status: {
       idle: { title: "准备生成", text: "输入需求、选择模板，上传材料后开始。" },
       uploading: { title: "正在上传", text: "正在保存材料。" },
-      queued: { title: "任务已创建", text: "需求已接收，正在准备生成。" },
-      running: { title: "正在生成 PPT", text: "系统正在规划结构、整理素材并生成可编辑 PPT。" },
+      queued: { title: "等待生成", text: "需求已接收，服务会按顺序开始生成。" },
+      running: { title: "正在生成 PPT", text: "系统正在规划结构、整理素材并生成可编辑 PPT。通常约需 3-8 分钟。" },
+      repairing: { title: "正在自动修复", text: "检查发现输出问题，系统正在根据原因修复后重新校验；最多自动尝试 1 次。" },
+      reviewing: { title: "旧任务已暂停", text: "该历史任务停留在已移除的预览确认阶段，请创建新任务直接生成 PPT。" },
       previewing: { title: "正在生成预览", text: "正在整理页面预览和 contact sheet。" },
       validating: { title: "正在校验", text: "正在确认输出文件和 QA 报告是否齐全。" },
       complete: { title: "生成完成", text: "结果已准备好，可以下载。" },
       failed: { title: "生成失败", text: "任务没有完成，已保留必要排障信息，请联系管理员处理。" },
+      cancelled: { title: "任务已取消", text: "本次任务已停止，不会继续生成。" },
     },
     workflow: [
       { key: "queued", title: "已接收需求", description: "保存上传文件、模板和生成参数。" },
@@ -113,12 +137,21 @@ const copy = {
     accountAdmin: "Accounts",
     changePassword: "Password",
     diagnostics: "Diagnostics",
+    pagePreview: "Slide preview",
+    noPagePreview: "Individual slide previews were not produced. Use the contact sheet for an overview.",
+    reviseSlide: "Revise this slide",
+    reviseTitle: "Targeted revision",
+    reviseHint: "Enter a slide number and feedback to update only that page and regenerate the PPTX.",
+    slideNumber: "Slide",
+    revisePlaceholder: "For example: simplify slide 3 and make the key number prominent while retaining the template style.",
+    sendRevision: "Submit revision",
     logout: "Sign out",
     promptTitle: "What deck do you need?",
     promptIntro: "Describe the deck, upload source files, and pick a visual template. I will show planning, generation, validation, and delivery in plain steps.",
     placeholder: "Tell me what PPT you want to generate, or upload source files...",
     defaultPrompt: "Create an internal training deck from the uploaded materials. Make it clear, editable, and include practice and summary slides.",
     upload: "Upload files",
+    removeFile: "Remove file",
     files: "files",
     generate: "Generate PPT",
     templateFallback: "Default template",
@@ -131,6 +164,7 @@ const copy = {
     templatePptx: "PPT template",
     templateDerived: "Derived",
     templateImported: "Imported",
+    brandAssets: "Brand assets",
     diagnosticsTitle: "Diagnostics",
     diagnosticsHint: "For troubleshooting. Document content and local paths are hidden.",
     copyAll: "Copy all",
@@ -148,16 +182,22 @@ const copy = {
     passwordSaved: "Password updated",
     passwordFailed: "Could not change password",
     close: "Close",
-    preset: { quick: "Quick", standard: "Standard", polished: "Polished" },
+    queuedPosition: "Queue position",
+    cancelQueued: "Cancel queued task",
+    stopRunning: "Stop task",
+    cancelling: "Cancelling",
     status: {
       idle: { title: "Ready", text: "Enter requirements, choose a template, and upload source files." },
       uploading: { title: "Uploading", text: "Saving files to the local task workspace." },
-      queued: { title: "Task created", text: "The request is ready for generation." },
-      running: { title: "Generating PPT", text: "Planning the structure, arranging content, and building an editable deck." },
+      queued: { title: "Waiting to start", text: "Your request is queued and will start in order." },
+      running: { title: "Generating PPT", text: "Planning the structure, arranging content, and building an editable deck. This usually takes 3-8 minutes." },
+      repairing: { title: "Repairing output", text: "Validation found an issue. The system is fixing it and will validate again, with at most one automatic attempt." },
+      reviewing: { title: "Earlier task paused", text: "This historical task stopped at a removed preview step. Start a new task to generate directly." },
       previewing: { title: "Preparing preview", text: "Preparing preview pages and a contact sheet." },
       validating: { title: "Validating", text: "Checking output files and the QA report." },
       complete: { title: "Done", text: "Your results are ready to download." },
       failed: { title: "Failed", text: "The task did not finish. Troubleshooting details are kept for an admin." },
+      cancelled: { title: "Cancelled", text: "This task has been stopped and will not continue." },
     },
     workflow: [
       { key: "queued", title: "Request received", description: "Saved uploaded files, template, and generation settings." },
@@ -180,7 +220,6 @@ export function PptAgentApp({ user }: { user: AppUser }) {
   const [history, setHistory] = useState<JobManifest[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [templateId, setTemplateId] = useState("");
-  const [preset, setPreset] = useState<Preset>("standard");
   const [prompt, setPrompt] = useState<string>(t.defaultPrompt);
   const [files, setFiles] = useState<File[]>([]);
   const [status, setStatus] = useState<JobStatus>("idle");
@@ -238,6 +277,10 @@ export function PptAgentApp({ user }: { user: AppUser }) {
     () => templates.find((template) => template.id === templateId) ?? templates[0],
     [templates, templateId],
   );
+  const activeTemplate = useMemo(
+    () => (job ? templates.find((template) => template.id === job.templateId) : selectedTemplate) ?? selectedTemplate,
+    [job, selectedTemplate, templates],
+  );
 
   const debugText = useMemo(
     () => logs.map((line) => `[${line.at}] [${line.stream}] ${line.message}`).join("\n"),
@@ -268,6 +311,11 @@ export function PptAgentApp({ user }: { user: AppUser }) {
       const data = JSON.parse((event as MessageEvent).data);
       if (data.status) setStatus(data.status);
       if (data.stage) setStage(data.stage);
+      if (data.status === "queued") void refreshJob(id);
+      if (data.status === "reviewing") {
+        void refreshJob(id);
+        source.close();
+      }
     });
     source.addEventListener("log", (event) => {
       const data = JSON.parse((event as MessageEvent).data);
@@ -313,7 +361,6 @@ export function PptAgentApp({ user }: { user: AppUser }) {
     const formData = new FormData();
     formData.append("prompt", prompt);
     formData.append("templateId", selectedTemplate?.id ?? templateId);
-    formData.append("preset", preset);
     for (const file of files) formData.append("files", file);
 
     const res = await fetch("/api/jobs", { method: "POST", body: formData });
@@ -331,13 +378,58 @@ export function PptAgentApp({ user }: { user: AppUser }) {
     void refreshJob(data.jobId);
   }
 
+  async function reviseSlide(slideNumber: number, instruction: string) {
+    if (!jobId) return;
+    setError("");
+    const res = await fetch(`/api/jobs/${jobId}/revise`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ slideNumber, instruction }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setError(data.error ?? (language === "zh" ? "无法提交修改" : "Could not submit revision"));
+      return;
+    }
+    setStatus("queued");
+    setStage("queued");
+    connectEvents(jobId);
+    void refreshJob(jobId);
+  }
+
+  async function cancelTask() {
+    if (!jobId) return;
+    setError("");
+    const res = await fetch(`/api/jobs/${jobId}/cancel`, { method: "POST" });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setError(data.error ?? (language === "zh" ? "无法取消任务" : "Could not cancel task"));
+      return;
+    }
+    setJob(data.job);
+    setStatus(data.job.status);
+    setStage(data.job.stage);
+    void loadHistory();
+  }
+
+  function addFiles(nextFiles: File[]) {
+    setFiles((current) => {
+      const selected = new Map(current.map((file) => [fileKey(file), file]));
+      for (const file of nextFiles) selected.set(fileKey(file), file);
+      return Array.from(selected.values());
+    });
+  }
+
+  function removeFile(target: File) {
+    setFiles((current) => current.filter((file) => fileKey(file) !== fileKey(target)));
+  }
+
   function selectHistoryItem(item: JobManifest) {
     setHistoryOpen(false);
     setJob(item);
     setJobId(item.id);
     setPrompt(item.prompt);
     setTemplateId(item.templateId);
-    setPreset(item.preset);
     setStatus(item.status);
     setStage(item.stage);
     setFiles([]);
@@ -426,7 +518,12 @@ export function PptAgentApp({ user }: { user: AppUser }) {
 
             {hasRun && (
               <>
-                <UserBubble prompt={prompt} files={files} selectedTemplate={selectedTemplate} preset={preset} language={language} />
+                <UserBubble
+                  prompt={prompt}
+                  files={files}
+                  selectedTemplate={activeTemplate}
+                  language={language}
+                />
                 <WorkflowBubble
                   status={status}
                   stage={stage}
@@ -435,12 +532,14 @@ export function PptAgentApp({ user }: { user: AppUser }) {
                   job={job}
                   language={language}
                   showQaReport={user.role === "admin"}
+                  onRevise={reviseSlide}
+                  onCancel={cancelTask}
                 />
               </>
             )}
           </div>
 
-          <form onSubmit={submit} className="sticky bottom-0 border-t border-rail bg-[#f7f8fb]/95 py-4 backdrop-blur">
+          <form onSubmit={submit} className="border-t border-rail bg-[#f7f8fb]/95 py-4">
             <div className="rounded-2xl border border-rail bg-white p-3 shadow-panel">
               <textarea
                 value={prompt}
@@ -451,15 +550,17 @@ export function PptAgentApp({ user }: { user: AppUser }) {
 
               <div className="mt-3 grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
                 <div className="flex min-w-0 flex-wrap items-center gap-2">
-                  <PresetSelector preset={preset} onChange={setPreset} language={language} />
                   <label className="flex cursor-pointer items-center gap-2 rounded-full border border-rail bg-white px-3 py-2 text-sm font-semibold text-quiet transition hover:border-cobalt hover:text-cobalt">
                     <Paperclip size={16} />
                     {t.upload}
                     <input
                       type="file"
                       multiple
-                      accept=".md,.txt,.docx,.pdf,.pptx,.xlsx,.csv"
-                      onChange={(event) => setFiles(Array.from(event.target.files ?? []))}
+                      accept=".md,.txt,.docx,.pdf,.pptx,.xlsx,.csv,.svg,.png,.jpg,.jpeg,.webp"
+                      onChange={(event) => {
+                        addFiles(Array.from(event.target.files ?? []));
+                        event.currentTarget.value = "";
+                      }}
                       className="hidden"
                     />
                   </label>
@@ -484,9 +585,18 @@ export function PptAgentApp({ user }: { user: AppUser }) {
               {files.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-2">
                   {files.map((file) => (
-                    <span key={`${file.name}-${file.size}`} className="flex max-w-full items-center gap-2 rounded-full bg-mist px-3 py-1.5 text-xs text-quiet">
+                    <span key={fileKey(file)} className="flex max-w-full items-center gap-2 rounded-full bg-mist py-1.5 pl-3 pr-1.5 text-xs text-quiet">
                       <FileText size={14} />
                       <span className="max-w-48 truncate">{file.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeFile(file)}
+                        className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-quiet transition hover:bg-white hover:text-ink"
+                        aria-label={`${t.removeFile}: ${file.name}`}
+                        title={t.removeFile}
+                      >
+                        <X size={13} />
+                      </button>
                     </span>
                   ))}
                 </div>
@@ -548,13 +658,11 @@ function UserBubble({
   prompt,
   files,
   selectedTemplate,
-  preset,
   language,
 }: {
   prompt: string;
   files: File[];
   selectedTemplate?: TemplateMeta;
-  preset: Preset;
   language: Language;
 }) {
   const t = copy[language];
@@ -565,7 +673,6 @@ function UserBubble({
         <p className="whitespace-pre-wrap text-sm leading-6">{prompt}</p>
         <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-200">
           <span className="rounded-full bg-white/10 px-3 py-1">{templateDisplay?.name ?? t.templateFallback}</span>
-          <span className="rounded-full bg-white/10 px-3 py-1">{t.preset[preset]}</span>
           <span className="rounded-full bg-white/10 px-3 py-1">
             {files.length} {t.files}
           </span>
@@ -583,6 +690,8 @@ function WorkflowBubble({
   job,
   language,
   showQaReport,
+  onRevise,
+  onCancel,
 }: {
   status: JobStatus;
   stage: string;
@@ -591,24 +700,64 @@ function WorkflowBubble({
   job: JobManifest | null;
   language: Language;
   showQaReport: boolean;
+  onRevise: (slideNumber: number, instruction: string) => Promise<void>;
+  onCancel: () => Promise<void>;
 }) {
   const t = copy[language];
+  const steps = t.workflow;
   const currentIndex = workflowIndex(status);
+  const activeStage = status === "repairing" ? "validating" : stage;
+  const statusText =
+    status === "validating" && !showQaReport
+      ? {
+          title: t.status.validating.title,
+          text: language === "zh" ? "正在确认 PPTX 与逐页预览是否可交付。" : "Checking the PPTX and slide previews before delivery.",
+        }
+      : t.status[status];
   const visibleArtifacts = Object.entries(job?.artifacts ?? {}).filter(([name]) => showQaReport || name !== "qa_report.md");
+  const [working, setWorking] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [revisionOpen, setRevisionOpen] = useState(false);
+  const [slideNumber, setSlideNumber] = useState(1);
+  const [instruction, setInstruction] = useState("");
+
+  async function submitRevision(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!instruction.trim()) return;
+    setWorking(true);
+    await onRevise(slideNumber, instruction);
+    setWorking(false);
+    setInstruction("");
+    setRevisionOpen(false);
+  }
+
+  async function cancelTask() {
+    setCancelling(true);
+    await onCancel();
+    setCancelling(false);
+  }
+
+  const canCancel = ["queued", "running", "repairing", "previewing", "validating"].includes(status);
+
   return (
     <div className="flex gap-3">
       <Avatar tone={status === "failed" ? "error" : "assistant"} />
       <div className="w-full max-w-3xl rounded-2xl bg-white p-5 shadow-sm ring-1 ring-rail">
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h2 className="text-lg font-bold">{t.status[status].title}</h2>
-            <p className="mt-1 text-sm leading-6 text-quiet">{t.status[status].text}</p>
+            <h2 className="text-lg font-bold">{statusText.title}</h2>
+            <p className="mt-1 text-sm leading-6 text-quiet">{statusText.text}</p>
+            {status === "queued" && job?.queuePosition && (
+              <p className="mt-2 text-sm font-bold text-cobalt">
+                {t.queuedPosition}: {job.queuePosition}
+              </p>
+            )}
           </div>
           {jobId && <span className="rounded-full bg-mist px-3 py-1 text-xs font-semibold text-quiet">{jobId}</span>}
         </div>
 
         <div className="grid gap-3">
-          {t.workflow.map((step, index) => {
+          {steps.map((step, index) => {
             const state = stepState(index, currentIndex, status);
             return (
               <div key={step.key} className="flex gap-3 rounded-xl border border-rail bg-mist/60 p-3">
@@ -616,9 +765,9 @@ function WorkflowBubble({
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-bold">{step.title}</span>
-                    {stage === step.key && <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-cobalt">{language === "zh" ? "进行中" : "Active"}</span>}
+                    {activeStage === step.key && status !== "complete" && <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-cobalt">{language === "zh" ? "进行中" : "Active"}</span>}
                   </div>
-                  <p className="mt-1 text-sm leading-6 text-quiet">{step.description}</p>
+                  <p className="mt-1 text-sm leading-6 text-quiet">{workflowDescription(step.key, step.description, language, showQaReport)}</p>
                 </div>
               </div>
             );
@@ -626,6 +775,26 @@ function WorkflowBubble({
         </div>
 
         {error && <div className="mt-4 rounded-xl bg-rose/10 px-4 py-3 text-sm leading-6 text-rose">{error}</div>}
+
+        {canCancel && (
+          <div className="mt-4 flex justify-end">
+            <button
+              type="button"
+              onClick={cancelTask}
+              disabled={cancelling}
+              className="flex h-10 items-center gap-2 rounded-full border border-rail bg-white px-4 text-sm font-bold text-quiet transition hover:border-rose hover:text-rose disabled:opacity-50"
+            >
+              {cancelling && <Loader2 size={15} className="animate-spin" />}
+              {cancelling ? t.cancelling : status === "queued" ? t.cancelQueued : t.stopRunning}
+            </button>
+          </div>
+        )}
+
+        {(status === "complete" || status === "failed") && (job?.previewSlides ?? []).length > 0 && (
+          <div className="mt-4">
+            <SlidePreviewGallery slides={job?.previewSlides ?? []} language={language} />
+          </div>
+        )}
 
         {visibleArtifacts.length > 0 && (
           <div className="mt-4 grid gap-2 sm:grid-cols-3">
@@ -640,8 +809,107 @@ function WorkflowBubble({
             ))}
           </div>
         )}
+
+        {status === "complete" && (
+          <div className="mt-4 border-t border-rail pt-4">
+            <button
+              type="button"
+              onClick={() => setRevisionOpen((open) => !open)}
+              className="flex items-center gap-2 text-sm font-bold text-cobalt"
+            >
+              <Edit3 size={16} />
+              {t.reviseTitle}
+            </button>
+            {revisionOpen && (
+              <form onSubmit={submitRevision} className="mt-3 grid gap-3 rounded-xl bg-mist/70 p-3">
+                <p className="text-sm leading-6 text-quiet">{t.reviseHint}</p>
+                <div className="grid gap-3 sm:grid-cols-[92px_1fr]">
+                  <label className="grid gap-1 text-xs font-bold text-quiet">
+                    {t.slideNumber}
+                    <input
+                      type="number"
+                      min={1}
+                      value={slideNumber}
+                      onChange={(event) => setSlideNumber(Math.max(1, Number(event.target.value) || 1))}
+                      className="rounded-lg border border-rail bg-white px-3 py-2 text-sm text-ink outline-none focus:border-cobalt"
+                    />
+                  </label>
+                  <textarea
+                    value={instruction}
+                    onChange={(event) => setInstruction(event.target.value)}
+                    placeholder={t.revisePlaceholder}
+                    rows={2}
+                    className="resize-none rounded-lg border border-rail bg-white px-3 py-2 text-sm leading-6 outline-none focus:border-cobalt"
+                  />
+                </div>
+                <button
+                  disabled={working || !instruction.trim()}
+                  className="flex h-10 items-center justify-center gap-2 rounded-full bg-ink px-4 text-sm font-bold text-white hover:bg-cobalt disabled:bg-slate-400 sm:justify-self-end"
+                >
+                  {working && <Loader2 size={15} className="animate-spin" />}
+                  {t.sendRevision}
+                </button>
+              </form>
+            )}
+          </div>
+        )}
       </div>
     </div>
+  );
+}
+
+function SlidePreviewGallery({ slides, language }: { slides: string[]; language: Language }) {
+  const t = copy[language];
+  const [index, setIndex] = useState(0);
+  const currentIndex = Math.min(index, Math.max(slides.length - 1, 0));
+  if (!slides.length) return <p className="mt-3 text-sm text-quiet">{t.noPagePreview}</p>;
+  return (
+    <section className="mt-3 overflow-hidden rounded-xl border border-rail bg-white">
+      <div className="flex items-center justify-between border-b border-rail px-3 py-2 text-sm font-bold">
+        <span className="flex items-center gap-2">
+          <Eye size={15} className="text-cobalt" />
+          {t.pagePreview}
+        </span>
+        <span className="text-xs text-quiet">
+          {currentIndex + 1} / {slides.length}
+        </span>
+      </div>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={slides[currentIndex]} alt="" className="block aspect-video w-full bg-white object-contain" />
+      {slides.length > 1 && (
+        <div className="flex items-center justify-between border-t border-rail px-3 py-2">
+          <button
+            type="button"
+            onClick={() => setIndex((current) => Math.max(0, current - 1))}
+            disabled={currentIndex === 0}
+            className="grid h-8 w-8 place-items-center rounded-full border border-rail text-quiet disabled:opacity-35"
+            aria-label={language === "zh" ? "上一页" : "Previous slide"}
+          >
+            <ChevronLeft size={16} />
+          </button>
+          <div className="flex gap-1.5">
+            {slides.map((_, itemIndex) => (
+              <button
+                key={slides[itemIndex]}
+                type="button"
+                onClick={() => setIndex(itemIndex)}
+                className={`h-2 rounded-full transition ${itemIndex === currentIndex ? "w-6 bg-cobalt" : "w-2 bg-slate-300"}`}
+                aria-label={language === "zh" ? `第 ${itemIndex + 1} 页` : `Slide ${itemIndex + 1}`}
+              />
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => setIndex((current) => Math.min(slides.length - 1, current + 1))}
+            disabled={currentIndex === slides.length - 1}
+            className="grid h-8 w-8 place-items-center rounded-full border border-rail text-quiet disabled:opacity-35"
+            aria-label={language === "zh" ? "下一页" : "Next slide"}
+          >
+            <ChevronRight size={16} />
+          </button>
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -682,6 +950,11 @@ function TemplateSidebar({
                 {templateKindLabel(selectedTemplate, language)}
               </span>
             </div>
+            {selectedTemplate.brandSpecPath && (
+              <span className="mb-2 inline-flex rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-700">
+                {t.brandAssets}
+              </span>
+            )}
             <div className="aspect-video overflow-hidden rounded-lg border border-rail bg-white">
               <iframe
                 key={`${selectedTemplate.id}-${language}`}
@@ -771,26 +1044,6 @@ function templateKindLabel(template: TemplateMeta, language: Language) {
   return t.templateDerived;
 }
 
-function PresetSelector({ preset, onChange, language }: { preset: Preset; onChange: (preset: Preset) => void; language: Language }) {
-  const t = copy[language];
-  return (
-    <div className="grid grid-cols-3 rounded-full bg-mist p-1 text-sm font-semibold">
-      {(["quick", "standard", "polished"] as Preset[]).map((item) => (
-        <button
-          type="button"
-          key={item}
-          onClick={() => onChange(item)}
-          className={`rounded-full px-3 py-1.5 transition ${
-            preset === item ? "bg-white text-cobalt shadow-sm" : "text-quiet hover:text-ink"
-          }`}
-        >
-          {t.preset[item]}
-        </button>
-      ))}
-    </div>
-  );
-}
-
 function HistoryDrawer({
   open,
   onClose,
@@ -828,12 +1081,12 @@ function HistoryDrawer({
                 type="button"
                 key={item.id}
                 onClick={() => onSelect(item)}
-                className={`rounded-xl border p-3 text-left transition hover:border-cobalt hover:bg-blue-50 ${
+                className={`w-full min-w-0 overflow-hidden rounded-xl border p-3 text-left transition hover:border-cobalt hover:bg-blue-50 ${
                   item.id === currentJobId ? "border-cobalt bg-blue-50" : "border-rail bg-white"
                 }`}
               >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="truncate text-sm font-bold">{item.title}</span>
+                <div className="flex min-w-0 items-center justify-between gap-2">
+                  <span className="min-w-0 flex-1 truncate text-sm font-bold">{item.title}</span>
                   <span className="shrink-0 rounded-full bg-mist px-2 py-0.5 text-[11px] font-semibold text-quiet">
                     {copy[language].status[item.status].title}
                   </span>
@@ -1022,7 +1275,7 @@ function StepIcon({ state }: { state: "done" | "active" | "waiting" | "failed" }
 function workflowIndex(status: JobStatus) {
   if (status === "failed") return 1;
   if (status === "complete") return 3;
-  if (status === "validating") return 2;
+  if (status === "validating" || status === "repairing") return 2;
   if (status === "running" || status === "previewing") return 1;
   if (status === "queued" || status === "uploading") return 0;
   return -1;
@@ -1037,4 +1290,15 @@ function stepState(index: number, currentIndex: number, status: JobStatus) {
 
 function artifactLabel(name: string, language: Language) {
   return copy[language].artifacts[name as keyof typeof copy.zh.artifacts] ?? name;
+}
+
+function workflowDescription(key: string, fallback: string, language: Language, showQaReport: boolean) {
+  if (showQaReport) return fallback;
+  if (key === "validating") return language === "zh" ? "检查 PPTX 和预览文件。" : "Checking the PPTX and preview files.";
+  if (key === "complete") return language === "zh" ? "可以下载 PPT 和预览图。" : "Download the PPT and preview images.";
+  return fallback;
+}
+
+function fileKey(file: File) {
+  return `${file.name}:${file.size}:${file.lastModified}`;
 }

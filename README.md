@@ -7,6 +7,9 @@ Local LAN web app for generating editable PowerPoint decks through a logged-in c
 - Next.js web app
 - Local user accounts and job history
 - PPT template picker and template upload/import
+- Optional brand assets bundled with imported templates, plus image uploads in chat
+- Targeted slide revisions after generation
+- Persistent local task queue with two concurrent generation slots, cancellation, and restart recovery
 - Project-bundled ppt-agent pipeline and validator
 - Project-bundled PPTX template analyzer
 
@@ -55,6 +58,8 @@ http://192.168.1.20:3007
 
 LAN access requires the host firewall/router to allow inbound TCP port `3007`.
 
+Generation jobs are queued locally and at most two run at once. Running jobs time out after 20 minutes by default; customize this before startup with `PPT_AGENT_JOB_TIMEOUT_MINUTES=30 npm run start:lan`. Each new job receives its own template snapshot, so later template management does not alter work already in progress.
+
 ## Local Development
 
 ```bash
@@ -76,8 +81,10 @@ npm run user:add -- --username admin --password ppt-agent-admin --name Admin --r
 
 ## Runtime Data
 
-Runtime data lives in:
+When started from a cloned repository, mutable runtime data lives in:
 
 ```text
-data/
+.ppt-agent-data/
 ```
+
+The tracked `data/templates/` directory contains starter templates copied into runtime data on first launch. Windows installer builds keep mutable data in `%ProgramData%\ppt-agent\data`.

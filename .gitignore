@@ -2,6 +2,7 @@
 node_modules/
 data/jobs/
 data/auth/
+.ppt-agent-data/
 *.log
 *.tsbuildinfo
 .env*

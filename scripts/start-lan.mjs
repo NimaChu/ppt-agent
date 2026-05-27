@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { existsSync, statSync } from "node:fs";
-import { readdir } from "node:fs/promises";
+import { cp, mkdir, readdir, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -15,6 +15,8 @@ const devMode = args.has("--dev");
 const noBuild = args.has("--no-build");
 const port = readArg("--port") || process.env.PORT || "3007";
 const host = readArg("--host") || process.env.HOSTNAME || "0.0.0.0";
+const configuredDataDir = process.env.PPT_AGENT_DATA_DIR?.trim();
+const runtimeDataDir = configuredDataDir ? path.resolve(configuredDataDir) : path.join(rootDir, ".ppt-agent-data");
 
 function readArg(name) {
   const prefix = `${name}=`;
@@ -99,6 +101,41 @@ function printUrls() {
   console.log("");
 }
 
+async function prepareStandaloneAssets(standaloneServer) {
+  const standaloneDir = path.dirname(standaloneServer);
+  const staticSource = path.join(rootDir, ".next", "static");
+  const staticTarget = path.join(standaloneDir, ".next", "static");
+  if (existsSync(staticSource)) {
+    await rm(staticTarget, { recursive: true, force: true });
+    await cp(staticSource, staticTarget, { recursive: true });
+  }
+
+  const publicSource = path.join(rootDir, "public");
+  if (existsSync(publicSource)) {
+    await cp(publicSource, path.join(standaloneDir, "public"), { recursive: true });
+  }
+}
+
+async function prepareRuntimeData() {
+  if (existsSync(runtimeDataDir)) return;
+  await mkdir(runtimeDataDir, { recursive: true });
+
+  const legacyAuth = path.join(rootDir, "data", "auth", "users.json");
+  if (!configuredDataDir && existsSync(legacyAuth)) {
+    for (const segment of ["auth", "jobs", "templates"]) {
+      const source = path.join(rootDir, "data", segment);
+      if (existsSync(source)) await cp(source, path.join(runtimeDataDir, segment), { recursive: true });
+    }
+    console.log(`Migrated existing local data to ${runtimeDataDir}`);
+    return;
+  }
+
+  const seedTemplates = path.join(rootDir, "data", "templates");
+  if (existsSync(seedTemplates)) {
+    await cp(seedTemplates, path.join(runtimeDataDir, "templates"), { recursive: true });
+  }
+}
+
 async function main() {
   if (!existsSync(path.join(rootDir, "node_modules", "next", "package.json"))) {
     console.log("Installing npm dependencies...");
@@ -110,27 +147,31 @@ async function main() {
     await run(npmCmd, ["run", "build"]);
   }
 
+  await prepareRuntimeData();
+  const runtimeEnv = { ...process.env, PPT_AGENT_DATA_DIR: runtimeDataDir };
+
   console.log("Bootstrapping initial admin user if needed...");
-  await run(nodeCmd, ["scripts/bootstrap-admin.mjs"]);
+  await run(nodeCmd, ["scripts/bootstrap-admin.mjs"], { env: runtimeEnv });
 
   printUrls();
 
   if (devMode) {
-    await run(npmCmd, ["run", "dev", "--", "--hostname", host, "--port", port]);
+    await run(npmCmd, ["run", "dev", "--", "--hostname", host, "--port", port], { env: runtimeEnv });
     return;
   }
 
   const standaloneServer = path.join(rootDir, ".next", "standalone", "server.js");
   if (existsSync(standaloneServer)) {
+    await prepareStandaloneAssets(standaloneServer);
     await run(nodeCmd, [standaloneServer], {
       env: {
-        ...process.env,
+        ...runtimeEnv,
         HOSTNAME: host,
         PORT: port,
       },
     });
   } else {
-    await run(npmCmd, ["run", "start", "--", "--hostname", host, "--port", port]);
+    await run(npmCmd, ["run", "start", "--", "--hostname", host, "--port", port], { env: runtimeEnv });
   }
 }
 
