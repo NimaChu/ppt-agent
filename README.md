@@ -37,18 +37,6 @@ Or double-click/run one of the root scripts:
 
 The launcher will install npm dependencies when needed, build the production app when the build is missing or stale, create the initial admin user if no users exist, and bind the service to all network interfaces.
 
-### Windows Without Admin Rights
-
-If your company Windows computer already has Git, Node.js 22+, Python 3, and a logged-in agent CLI, no installer or administrator permission is required. Clone the repository into a user-writable folder such as `Documents`, then double-click `start-lan.bat`:
-
-```bat
-git clone https://github.com/NimaChu/ppt-agent.git
-cd ppt-agent
-start-lan.bat
-```
-
-Do not place the project under `C:\Program Files` or another protected system directory. Runtime data is written to `.ppt-agent-data/` inside the project folder. Local use at `http://localhost:3007` normally works without extra setup; LAN access from other computers still depends on Windows Firewall and company network policy allowing inbound TCP port `3007`.
-
 Default first-run admin:
 
 ```text
