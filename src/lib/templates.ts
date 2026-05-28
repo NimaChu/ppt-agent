@@ -19,6 +19,8 @@ type TemplateJson = {
   designSpecPath?: string;
   specLockPath?: string;
   sampleSvgDir?: string;
+  brandSpecPath?: string;
+  brandAssetDir?: string;
   templateStrength?: string;
 };
 
@@ -36,6 +38,8 @@ export async function listTemplates(): Promise<TemplateMeta[]> {
       const designSpecPath = resolveOptionalTemplatePath(dir, meta.designSpecPath ?? "references/design_spec.md");
       const specLockPath = resolveOptionalTemplatePath(dir, meta.specLockPath ?? "references/spec_lock.md");
       const sampleSvgDir = resolveOptionalTemplatePath(dir, meta.sampleSvgDir ?? "references/sample_svgs");
+      const brandSpecPath = resolveOptionalTemplatePath(dir, meta.brandSpecPath);
+      const brandAssetDir = resolveOptionalTemplatePath(dir, meta.brandAssetDir);
       const name = normalizeLocalizedText(meta.name, entry.name);
       const purpose = normalizeLocalizedText(meta.purpose, "");
       const style = normalizeLocalizedText(meta.style, "");
@@ -59,6 +63,8 @@ export async function listTemplates(): Promise<TemplateMeta[]> {
         designSpecPath,
         specLockPath,
         sampleSvgDir,
+        brandSpecPath,
+        brandAssetDir,
         templateStrength: meta.templateStrength,
         previewPath: `/api/templates/${entry.name}/preview`,
         examplePath: `/api/templates/${entry.name}/example`,

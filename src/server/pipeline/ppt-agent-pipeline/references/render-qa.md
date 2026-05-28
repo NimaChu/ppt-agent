@@ -34,10 +34,13 @@ When running from the ppt-agent app root, the bundled validator path is:
 python3 src/server/pipeline/ppt-agent-pipeline/scripts/validate_job.py jobs/<job_id> --require-final
 ```
 
+For administrator jobs that retain a narrative QA report, add `--require-qa`.
+
 ## Blocking Defects
 
+- Text or other meaningful content written wholly outside the slide canvas because layout units were mis-scaled. `pptxgenjs` geometry is specified in inches, not 1280 x 720 pixel coordinates.
 - Text clipped by its box or slide edge.
-- Overlapping text, icons, charts, or footers.
+- Overlapping text, icons, charts, or footers. The bundled validator blocks major text-to-text collisions such as a title intersecting a claim bar; rendered review remains required for subtler visual defects.
 - Placeholder text left in the deck.
 - Missing images or broken media links.
 - Low contrast that makes text unreadable.
@@ -59,7 +62,7 @@ Placeholder scan:
 python -m markitdown output/final.pptx | grep -iE "xxxx|lorem|ipsum|placeholder|todo|this.*(page|slide).*layout"
 ```
 
-For service logs, write all issues to `qa/qa_report.md` with slide number, severity, fix, and verification status.
+When `request.json.retainQaReport` is `true`, write issues to `qa/qa_report.md` with slide number, severity, fix, and verification status. For standard user jobs, retain only validator failures needed for repair.
 
 Contact-sheet review should answer:
 
@@ -69,7 +72,21 @@ Contact-sheet review should answer:
 - Are title sizes, footer placement, and accent colors consistent?
 - Do section pages and ending pages feel intentional?
 
-For vector-rendered slides, run SVG or layout checks before export. Treat `spec_lock` drift as a warning for `quick`/`standard` and a blocker for `polished`.
+For vector-rendered slides, run SVG or layout checks before export. Treat material `spec_lock` drift as a blocking template-fidelity defect.
+
+## Internal Visual Review Rubric
+
+For administrator jobs, record concise internal findings in `qa/qa_report.md`. Standard user jobs do not persist this report; users only need pass/fix progress.
+
+Score each dimension from 1 to 10 and name concrete fixes when a dimension is below 8:
+
+- Visual hierarchy: each slide has one obvious reading entry and one core claim.
+- Craft quality: spacing, alignment, colors, typography and image crops are consistent.
+- Communication function: every visual element clarifies content; unsupported filler metrics or decoration are absent.
+- Style and brand consistency: selected template grammar and supplied brand assets remain consistent.
+- Originality and restraint: the deck avoids generic AI decoration and repetitive page rhythm.
+
+For PPT decks, visual hierarchy and communication function are blocking quality dimensions. Do not ship a job with a known issue below 8 in either dimension.
 
 ## Severity
 
@@ -78,9 +95,9 @@ For vector-rendered slides, run SVG or layout checks before export. Treat `spec_
 - P2: visible alignment, spacing, contrast, or polish issue.
 - P3: minor taste issue that does not block internal draft delivery.
 
-Internal drafts may ship with documented P2/P3 issues only when the user requested speed. Polished or external decks should have no known P1/P2 issues.
+P0/P1 issues must be fixed before delivery. Document residual P2/P3 concerns internally and fix visible P2 issues when feasible before delivery.
 
-## QA Report Shape
+## QA Report Shape (When Enabled)
 
 Keep `qa/qa_report.md` short but structured:
 
@@ -89,4 +106,4 @@ Keep `qa/qa_report.md` short but structured:
 - Checks run and commands used.
 - Findings by severity and slide number.
 - Fixes applied.
-- Residual risk and whether it is acceptable for the selected preset.
+- Residual risk and whether it is acceptable for delivery.

@@ -4,9 +4,12 @@ import path from "node:path";
 import { promisify } from "node:util";
 
 const scrypt = promisify(scryptCallback);
-const root = process.cwd();
-const authDir = path.join(root, "data", "auth");
+const dataDir = process.env.PPT_AGENT_DATA_DIR
+  ? path.resolve(process.env.PPT_AGENT_DATA_DIR)
+  : path.join(process.cwd(), "data");
+const authDir = path.join(dataDir, "auth");
 const usersFile = path.join(authDir, "users.json");
+const usersLock = `${usersFile}.lock`;
 
 function argValue(name) {
   const index = process.argv.indexOf(`--${name}`);
@@ -27,6 +30,32 @@ async function readUsers() {
   }
 }
 
+async function withLock(action) {
+  const startedAt = Date.now();
+  let handle;
+  while (!handle) {
+    try {
+      handle = await fs.open(usersLock, "wx");
+    } catch (error) {
+      if (error.code !== "EEXIST") throw error;
+      if (Date.now() - startedAt > 8000) throw new Error("Timed out waiting for users store lock");
+      await new Promise((resolve) => setTimeout(resolve, 30));
+    }
+  }
+  try {
+    return await action();
+  } finally {
+    await handle.close();
+    await fs.rm(usersLock, { force: true });
+  }
+}
+
+async function writeUsersAtomic(store) {
+  const temporary = `${usersFile}.${process.pid}.${randomUUID()}.tmp`;
+  await fs.writeFile(temporary, `${JSON.stringify(store, null, 2)}\n`, "utf8");
+  await fs.rename(temporary, usersFile);
+}
+
 const username = argValue("username").trim();
 const password = argValue("password");
 const name = argValue("name").trim() || username;
@@ -38,23 +67,24 @@ if (!username || !password) {
 }
 
 await fs.mkdir(authDir, { recursive: true });
-const store = await readUsers();
-const existing = store.users.find((user) => user.username.toLowerCase() === username.toLowerCase());
-if (existing) {
-  existing.name = name;
-  existing.role = role === "admin" ? "admin" : "user";
-  existing.passwordHash = await hashPassword(password);
-  console.log(`Updated user ${username}`);
-} else {
-  store.users.push({
-    id: randomUUID(),
-    username,
-    name,
-    role: role === "admin" ? "admin" : "user",
-    passwordHash: await hashPassword(password),
-    createdAt: new Date().toISOString(),
-  });
-  console.log(`Created user ${username}`);
-}
-
-await fs.writeFile(usersFile, `${JSON.stringify(store, null, 2)}\n`, "utf8");
+await withLock(async () => {
+  const store = await readUsers();
+  const existing = store.users.find((user) => user.username.toLowerCase() === username.toLowerCase());
+  if (existing) {
+    existing.name = name;
+    existing.role = role === "admin" ? "admin" : "user";
+    existing.passwordHash = await hashPassword(password);
+    console.log(`Updated user ${username}`);
+  } else {
+    store.users.push({
+      id: randomUUID(),
+      username,
+      name,
+      role: role === "admin" ? "admin" : "user",
+      passwordHash: await hashPassword(password),
+      createdAt: new Date().toISOString(),
+    });
+    console.log(`Created user ${username}`);
+  }
+  await writeUsersAtomic(store);
+});

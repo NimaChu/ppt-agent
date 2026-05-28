@@ -33,8 +33,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
           }
           const manifest = await readManifestForUser(jobId, user.id);
           if (!manifest) throw new Error("Job not found");
-          if (manifest.status === "complete" || manifest.status === "failed") {
-            send(manifest.status === "complete" ? "done" : "error", {
+          if (manifest.status === "complete" || manifest.status === "failed" || manifest.status === "cancelled") {
+            send(manifest.status === "complete" || manifest.status === "cancelled" ? "done" : "error", {
               jobId,
               status: manifest.status,
               stage: manifest.stage,

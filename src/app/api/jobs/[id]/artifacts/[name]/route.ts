@@ -9,6 +9,11 @@ const CONTENT_TYPES: Record<string, string> = {
   "final.pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
   "contact-sheet.png": "image/png",
   "qa_report.md": "text/markdown; charset=utf-8",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".webp": "image/webp",
+  ".svg": "image/svg+xml; charset=utf-8",
 };
 
 export async function GET(_: Request, { params }: { params: Promise<{ id: string; name: string }> }) {
@@ -25,10 +30,12 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
   const stream = await artifactStream(jobId, safeName);
   if (!stream) return NextResponse.json({ error: "Artifact not found" }, { status: 404 });
 
+  const extension = safeName.slice(safeName.lastIndexOf(".")).toLowerCase();
+  const isPreview = [".png", ".jpg", ".jpeg", ".webp", ".svg"].includes(extension);
   return new Response(stream as unknown as BodyInit, {
     headers: {
-      "content-type": CONTENT_TYPES[safeName] ?? "application/octet-stream",
-      "content-disposition": `attachment; filename="${safeName}"`,
+      "content-type": CONTENT_TYPES[safeName] ?? CONTENT_TYPES[extension] ?? "application/octet-stream",
+      "content-disposition": `${isPreview ? "inline" : "attachment"}; filename="${safeName}"`,
     },
   });
 }

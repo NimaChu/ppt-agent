@@ -20,6 +20,7 @@ export async function importUploadedPptxTemplate(input: {
   name: string;
   description: string;
   tags: string[];
+  brandFiles?: File[];
 }) {
   const name = input.name.trim();
   const description = input.description.trim();
@@ -54,6 +55,7 @@ export async function importUploadedPptxTemplate(input: {
       manifestPath: (await pathExists(path.join(importDir, "manifest.json"))) ? path.join(importDir, "manifest.json") : undefined,
       svgDir,
       templatePptxPath: uploadPath,
+      brandFiles: input.brandFiles ?? [],
     });
   } finally {
     await fs.rm(tmpRoot, { recursive: true, force: true });
@@ -84,6 +86,7 @@ async function writeTemplatePackage(input: {
   manifestPath?: string;
   svgDir: string;
   templatePptxPath?: string;
+  brandFiles?: File[];
 }) {
   await fs.rm(input.targetDir, { recursive: true, force: true });
   await Promise.all([
@@ -92,6 +95,7 @@ async function writeTemplatePackage(input: {
   ]);
 
   const sampleSvgFiles = await copySampleSvgs(input.svgDir, path.join(input.targetDir, "references", "sample_svgs"));
+  const brandAssets = await copyBrandAssets(input.brandFiles ?? [], path.join(input.targetDir, "references", "brand", "assets"));
   if (input.designSpecPath) await fs.copyFile(input.designSpecPath, path.join(input.targetDir, "references", "design_spec.md"));
   if (input.specLockPath) await fs.copyFile(input.specLockPath, path.join(input.targetDir, "references", "spec_lock.md"));
   if (input.manifestPath) await fs.copyFile(input.manifestPath, path.join(input.targetDir, "references", "manifest.json"));
@@ -105,6 +109,9 @@ async function writeTemplatePackage(input: {
     fs.writeFile(path.join(input.targetDir, "example.md"), buildExampleMd(input), "utf8"),
     fs.writeFile(path.join(input.targetDir, "example.html"), buildExampleHtml(input, firstSvg), "utf8"),
   ]);
+  if (brandAssets.length) {
+    await fs.writeFile(path.join(input.targetDir, "references", "brand", "brand-spec.md"), buildBrandSpec(input, brandAssets), "utf8");
+  }
   if (firstSvgPath) await writePreviewPng(firstSvgPath, path.join(input.targetDir, "preview.png"));
 }
 
@@ -120,6 +127,7 @@ function buildTemplateJson(input: {
     en: string[];
   };
   templateStrength: string;
+  brandFiles?: File[];
 }) {
   return {
     id: input.templateId,
@@ -133,6 +141,12 @@ function buildTemplateJson(input: {
     designSpecPath: "references/design_spec.md",
     specLockPath: "references/spec_lock.md",
     sampleSvgDir: "references/sample_svgs",
+    ...(input.brandFiles?.length
+      ? {
+          brandSpecPath: "references/brand/brand-spec.md",
+          brandAssetDir: "references/brand/assets",
+        }
+      : {}),
     templateStrength: input.templateStrength,
   };
 }
@@ -147,8 +161,56 @@ Use this template when the user selects \`${input.templateId}\` in ppt agent.
 - Read \`references/design_spec.md\` for reusable visual rules.
 - Read \`references/spec_lock.md\` when present for locked colors, typography, spacing, icons, and image policy.
 - Study \`references/sample_svgs/\` for page rhythm and reusable layout patterns.
+- When \`references/brand/brand-spec.md\` exists, read it before designing and use the real brand assets it lists.
 - Do not copy original sample deck text or business claims into a new user deck.
 - Prefer editable PowerPoint objects; use vector-to-PowerPoint conversion only for visual-heavy pages.
+`;
+}
+
+async function copyBrandAssets(files: File[], targetDir: string) {
+  const allowed = new Set([".svg", ".png", ".jpg", ".jpeg", ".webp"]);
+  const assets: string[] = [];
+  for (const [index, file] of files.entries()) {
+    if (!file.name || file.size === 0) continue;
+    const ext = path.extname(file.name).toLowerCase();
+    if (!allowed.has(ext)) throw new Error("品牌素材仅支持 SVG、PNG、JPG 或 WEBP");
+    await ensureDir(targetDir);
+    const safeName = `${String(index + 1).padStart(2, "0")}-${safeSegment(file.name, `asset${ext}`)}`;
+    await fs.writeFile(path.join(targetDir, safeName), Buffer.from(await file.arrayBuffer()));
+    assets.push(safeName);
+  }
+  return assets;
+}
+
+function buildBrandSpec(
+  input: { name: LocalizedInput; style: LocalizedInput; tags: { zh: string[]; en: string[] } },
+  assets: string[],
+) {
+  const classify = (name: string) => {
+    if (/logo|标志|品牌/i.test(name)) return "Logo";
+    if (/ui|screen|截图|界面|dashboard|app/i.test(name)) return "UI Screenshot";
+    if (/product|产品|hero|render/i.test(name)) return "Product Image";
+    return "Reference Asset";
+  };
+  return `# ${input.name.zh} · Brand Spec
+
+> 该文件由 ppt agent 模板导入流程生成。生成 PPT 时应优先使用真实资产，不要用通用图形替代品牌或产品识别元素。
+
+## 使用原则
+
+- 所有可用 Logo、产品图和 UI 截图均优先于临时生成的装饰图。
+- 保持原图比例与清晰度；不得拉伸 Logo 或随意改色。
+- 页面配色和图像气质应符合模板描述：${input.style.zh}
+- 标签参考：${input.tags.zh.join(" / ")}
+
+## 已提供资产
+
+${assets.map((name) => `- \`assets/${name}\` - ${classify(name)}`).join("\n")}
+
+## 待补充信息
+
+- 如需更严格的品牌执行，可补充官方色值、字体和 Logo 禁用规范。
+- 实体产品演示应至少提供一张高清产品主图；数字产品演示应优先提供真实 UI 截图。
 `;
 }
 

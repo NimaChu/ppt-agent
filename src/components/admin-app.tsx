@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, FileUp, Loader2, Plus, Presentation, ShieldCheck, Trash2, UserRound } from "lucide-react";
+import { ArrowLeft, FileImage, FileUp, Loader2, Plus, Presentation, ShieldCheck, Trash2, UserRound } from "lucide-react";
 import type { AppUser, TemplateMeta } from "@/lib/types";
 
 export function AdminApp({ currentUser }: { currentUser: AppUser }) {
@@ -19,6 +19,7 @@ export function AdminApp({ currentUser }: { currentUser: AppUser }) {
   const [templateDescription, setTemplateDescription] = useState("");
   const [templateTags, setTemplateTags] = useState("");
   const [pptxFile, setPptxFile] = useState<File | null>(null);
+  const [brandFiles, setBrandFiles] = useState<File[]>([]);
   const [deletingTemplateId, setDeletingTemplateId] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -74,6 +75,7 @@ export function AdminApp({ currentUser }: { currentUser: AppUser }) {
     formData.append("name", templateName);
     formData.append("description", templateDescription);
     formData.append("tags", templateTags);
+    for (const file of brandFiles) formData.append("brandFiles", file);
     const res = await fetch("/api/admin/templates", { method: "POST", body: formData });
     await finishTemplateImport(res);
   }
@@ -90,6 +92,7 @@ export function AdminApp({ currentUser }: { currentUser: AppUser }) {
     setTemplateDescription("");
     setTemplateTags("");
     setPptxFile(null);
+    setBrandFiles([]);
     void loadTemplates();
   }
 
@@ -236,6 +239,26 @@ export function AdminApp({ currentUser }: { currentUser: AppUser }) {
                   className="hidden"
                 />
               </label>
+              <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-rail bg-mist px-4 py-3 text-sm font-semibold text-quiet hover:border-cobalt hover:text-cobalt">
+                <FileImage size={16} />
+                {brandFiles.length ? `已选择 ${brandFiles.length} 个品牌素材` : "附加品牌素材（可选）：Logo / 产品图 / UI 截图"}
+                <input
+                  type="file"
+                  multiple
+                  accept=".svg,.png,.jpg,.jpeg,.webp"
+                  onChange={(event) => setBrandFiles(Array.from(event.target.files ?? []))}
+                  className="hidden"
+                />
+              </label>
+              {brandFiles.length > 0 && (
+                <div className="flex flex-wrap gap-2 text-xs text-quiet">
+                  {brandFiles.map((file) => (
+                    <span key={`${file.name}-${file.size}`} className="max-w-48 truncate rounded-full bg-mist px-3 py-1">
+                      {file.name}
+                    </span>
+                  ))}
+                </div>
+              )}
               <button disabled={templateLoading || !templateName.trim() || !templateDescription.trim() || !templateTags.trim() || !pptxFile} className="flex h-11 items-center justify-center gap-2 rounded-full bg-ink px-5 text-sm font-bold text-white hover:bg-cobalt disabled:bg-slate-400">
                 {templateLoading && <Loader2 size={16} className="animate-spin" />}
                 上传并生成模板
@@ -274,6 +297,9 @@ export function AdminApp({ currentUser }: { currentUser: AppUser }) {
                 <div className="mt-2 truncate text-xs font-semibold text-quiet">
                   {(template.localized?.tags?.zh ?? template.tags).slice(0, 4).join(" / ")}
                 </div>
+                {template.brandSpecPath && (
+                  <div className="mt-2 text-xs font-semibold text-emerald-700">已配置品牌素材</div>
+                )}
               </div>
             ))}
           </div>

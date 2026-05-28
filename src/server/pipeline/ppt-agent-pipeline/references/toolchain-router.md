@@ -78,7 +78,7 @@ Use this ranking as a routing bias, not a hard rule.
 - Need a one-off, high-quality deck: use the presentation quality bar before rendering.
 - Need repeatable LAN product behavior: choose `pptxgenjs`/OOXML as the base and wrap everything in job artifacts.
 - Need many similar decks: create reusable slide recipes before improving prompts.
-- Need high polish under time pressure: generate `standard`, inspect contact sheet, then promote only selected slides to the vector route.
+- Need high polish under time pressure: generate the deck once, inspect the contact sheet, then revise only slides that warrant stronger visual treatment.
 
 ## Anti-Patterns
 
